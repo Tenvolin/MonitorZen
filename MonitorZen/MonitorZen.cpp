@@ -75,7 +75,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MONITORZEN));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground  = CreateSolidBrush(RGB(0, 0, 0));
+	wcex.hbrBackground  = /*(HBRUSH)GetStockObject(COLOR_WINDOW + 1);*/ CreateSolidBrush(RGB(255, 255, 255));
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_MONITORZEN);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -97,20 +97,32 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
 
-      /*HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-   CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);*/
-
+   // create main window
    HWND hWnd = CreateWindowW(szWindowClass,
 	   szTitle,
-	   WS_EX_TOOLWINDOW,
+	   WS_OVERLAPPEDWINDOW & (~WS_THICKFRAME) & (~WS_MINIMIZEBOX) & (~WS_MAXIMIZEBOX),
+	   CW_USEDEFAULT,
 	   0,
-	   0,
-	   1920,
-	   1080,
+	   400,
+	   400,
 	   nullptr, nullptr, hInstance, nullptr);
 
-   SetWindowLong(hWnd, GWL_STYLE, 0); // !!! removes title bar
-   SetMenu(hWnd, NULL); // !!! removes menu bar
+   // !!! refactor; 
+   // create button in main window
+   HWND hwndButton = CreateWindow(
+	   L"BUTTON",  // Predefined class; Unicode assumed 
+	   L"Cover Monitors",      // Button text 
+	   WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_FLAT,//WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+	   133 + 12,         // x position 
+	   300,         // y position 
+	   105,        // Button width
+	   30,        // Button height
+	   hWnd,     // Parent window
+	   NULL,       // No menu.
+	   (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
+	   NULL);      // Pointer not needed.
+
+
 
 
    if (!hWnd)
@@ -140,7 +152,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_COMMAND:
         {
-            int wmId = LOWORD(wParam);
+			int wmId = LOWORD(wParam);
+
+			// handle main button press
+			if (message == 273)
+			{
+				MessageBox(hWnd, TEXT("Button Pressed"), TEXT(""), 0);
+			}
+
             // Parse the menu selections:
             switch (wmId)
             {
