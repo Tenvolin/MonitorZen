@@ -3,6 +3,8 @@
 
 #include "stdafx.h"
 #include "MonitorZen.h"
+#include <string>
+#include <iostream>
 
 #define MAX_LOADSTRING 100
 
@@ -32,6 +34,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     LoadStringW(hInstance, IDC_MONITORZEN, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 	RegisterScreen(hInstance);
+
+	// !!! Delete
+	// Grab #monitors and resolutions.
+	int monitors = MonitorCount();
+	POINT p1; p1.x = 0; p1.x = 0;
+	HMONITOR HMONITOR1 = MonitorFromPoint(p1, MONITOR_DEFAULTTONEAREST);
+
+	wchar_t buffer[256];
+	wsprintfW(buffer, L"%d", HMONITOR1);
+	MessageBoxW(nullptr, buffer, buffer, MB_OK);
+	/*int msgboxID = MessageBox(
+		NULL,
+		val,
+		L"Confirm Save As",
+		MB_ICONEXCLAMATION
+	);*/
+
+	
 
     // Perform application initialization:
     if (!InitInstance (hInstance, nCmdShow))
@@ -176,7 +196,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    UpdateWindow(hWnd);
 
-
    return TRUE;
 }
 
@@ -201,7 +220,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// handle main button press
 			if (message == 273)
 			{
-				//MessageBox(hWnd, TEXT("Button Pressed"), TEXT(""), 0);
 				CreateOverlays(hInst, 0);
 			}
 
@@ -309,4 +327,19 @@ BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
 	UpdateWindow(hWndScreen);
 
 	return TRUE;
+}
+
+BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+{
+	int *Count = (int*)dwData;
+	(*Count)++;
+	return TRUE;
+}
+
+int MonitorCount()
+{
+	int Count = 0;
+	if (EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, (LPARAM)&Count))
+		return Count;
+	return -1;//signals an error
 }
