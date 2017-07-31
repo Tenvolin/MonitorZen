@@ -31,6 +31,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_MONITORZEN, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
+	RegisterScreen(hInstance);
 
     // Perform application initialization:
     if (!InitInstance (hInstance, nCmdShow))
@@ -75,12 +76,37 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MONITORZEN));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground  = /*(HBRUSH)GetStockObject(COLOR_WINDOW + 1);*/ CreateSolidBrush(RGB(255, 255, 255));
+	wcex.hbrBackground  = CreateSolidBrush(RGB(255, 255, 255)); /*(HBRUSH)GetStockObject(COLOR_WINDOW + 1);*/
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_MONITORZEN);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
+}
+//
+//  FUNCTION: RegisterScreen(HINSTANCE hInstance)
+//
+//  PURPOSE: Registers windows used to cover selected monitors.
+//
+ATOM RegisterScreen(HINSTANCE hInstance)
+{
+	WNDCLASSEXW wcex;
+
+	wcex.cbSize = sizeof(WNDCLASSEX);
+
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndProcScreen;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = hInstance;
+	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MONITORZEN));
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = CreateSolidBrush(RGB(0, 0, 0)); /*(HBRUSH)GetStockObject(COLOR_WINDOW + 1);*/
+	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_MONITORZEN);
+	wcex.lpszClassName = L"screen";
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+
+	return RegisterClassExW(&wcex);
 }
 
 //
@@ -109,6 +135,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    // !!! refactor; 
    // create button in main window
+   // TODO: See if there is any other way of handling buttons.
    HWND hwndButton = CreateWindow(
 	   L"BUTTON",  // Predefined class; Unicode assumed 
 	   L"Cover Monitors",      // Button text 
@@ -122,7 +149,22 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	   (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
 	   NULL);      // Pointer not needed.
 
-
+   // !!! refactor
+   // TODO: Populate scrollbar with items to scroll.
+   // TODO: Make scrollbar size adaptive to number of items to display
+   // create a scrollbar
+   HWND hwndScrollbar = CreateWindowEx(0L,
+	   L"SCROLLBAR",
+	   NULL,
+	   WS_CHILD | WS_VISIBLE | SBS_VERT,
+	   345,
+	   20,
+	   18,
+	   250,
+	   hWnd,
+	   NULL,
+	   hInst,
+	   NULL);
 
 
    if (!hWnd)
@@ -131,7 +173,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    }
 
    ShowWindow(hWnd, nCmdShow);
+
    UpdateWindow(hWnd);
+
 
    return TRUE;
 }
@@ -157,7 +201,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// handle main button press
 			if (message == 273)
 			{
-				MessageBox(hWnd, TEXT("Button Pressed"), TEXT(""), 0);
+				//MessageBox(hWnd, TEXT("Button Pressed"), TEXT(""), 0);
+				CreateOverlays(hInst, 0);
 			}
 
             // Parse the menu selections:
@@ -191,6 +236,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+
+LRESULT CALLBACK WndProcScreen(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+
+		// Parse the menu selections:
+		switch (wmId)
+		{
+		case IDM_ABOUT:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}
+	break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		// TODO: Add any drawing code that uses hdc here...
+		EndPaint(hWnd, &ps);
+	}
+	break;
+	case WM_DESTROY:
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
 // Message handler for about box.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -209,4 +293,20 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
+{
+	HWND hWndScreen = CreateWindowW(L"screen",
+		L"Meme",
+		WS_OVERLAPPEDWINDOW & (~WS_THICKFRAME) & (~WS_MINIMIZEBOX) & (~WS_MAXIMIZEBOX),
+		CW_USEDEFAULT,
+		0,
+		400,
+		400,
+		nullptr, nullptr, nullptr, nullptr);
+	ShowWindow(hWndScreen, SW_SHOWDEFAULT);
+	UpdateWindow(hWndScreen);
+
+	return TRUE;
 }
