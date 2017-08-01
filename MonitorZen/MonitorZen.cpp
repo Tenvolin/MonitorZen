@@ -20,7 +20,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 // virtual-screen information
 												// to find resolution
 std::unordered_map<HMONITOR, MONITORINFO> monitorInfos; 
-HWND hCheckBox;		// 
+std::unordered_map<HWND, int> hCheckBoxes; 
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -163,21 +163,26 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		(HMENU)IDC_ACTIVATE_SCREEN,       // No menu.
 		(HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
 		NULL);      // Pointer not needed.
-
 	
 
 	// START @@@
 	// Create the list-view window in report view with label editing enabled.
-	long offset = 0;
-	hCheckBox = CreateWindow(TEXT("button"), TEXT("Monitor 1"),
-		WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
-		20, 20, 185, 35,
-		hWnd, (HMENU)IDC_CHECKBOX + offset, hInstance, 0);
-	/*hCheckBox = CreateWindow(TEXT("button"), TEXT("Monitor X"),
-		WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
-		20, 20, 185, 35,
-		hWnd, (HMENU)IDC_CHECKBOX, hInstance, NULL);*/
+	long offset = hCheckBoxes.size();
+	HWND hCheckBox;
 
+	wchar_t buffer[256];
+	wsprintfW(buffer, L"Monitor %d", offset + 1); // monitor: X; 1-based index.
+	
+	for (int i = 0; i < monitorInfos.size(); ++i)
+	{
+		hCheckBox = CreateWindow(L"button", buffer,
+			WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
+			20, 20+i*35, 185, 35,
+			hWnd, (HMENU)IDC_CHECKBOX + offset, hInstance, 0);
+		hCheckBoxes.insert({ hCheckBox, offset });
+		offset++;
+	}
+	
 	// END
 
 	if (!hWnd)
@@ -227,20 +232,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDC_ACTIVATE_SCREEN: // handle main button press
-			// change to: handle button specifically; by handle?
 			CreateOverlays(hInst, 0);
 			break;
-		//case IDC_CHECKBOX:
-		//	// START @@@
-		//	checked = IsDlgButtonChecked(hWnd, wmId);
-		//	if (checked) {
-		//		CheckDlgButton(hWnd, wmId, BST_UNCHECKED);
-		//	}
-		//	else {
-		//		CheckDlgButton(hWnd, wmId, BST_CHECKED);
-		//	}
-		//	break;
-		//	// END
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
