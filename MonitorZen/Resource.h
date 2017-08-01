@@ -14,6 +14,8 @@
 #define IDI_SMALL				108
 #define IDC_MONITORZEN			109
 #define IDC_MYICON				2
+#define IDC_ACTIVATE_SCREEN		150
+#define IDC_CHECKBOX			151
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
 #endif

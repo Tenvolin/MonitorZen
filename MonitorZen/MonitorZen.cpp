@@ -8,6 +8,7 @@
 #include <set>
 #include <unordered_map>
 #include <Commctrl.h> // checked listbox
+#include <vector>
 
 #define MAX_LOADSTRING 100
 
@@ -17,7 +18,9 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 // virtual-screen information
-std::unordered_map<HMONITOR, MONITORINFO> monitorInfos;
+												// to find resolution
+std::unordered_map<HMONITOR, MONITORINFO> monitorInfos; 
+HWND hCheckBox;		// 
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -157,27 +160,24 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		105,        // Button width
 		30,        // Button height
 		hWnd,     // Parent window
-		NULL,       // No menu.
+		(HMENU)IDC_ACTIVATE_SCREEN,       // No menu.
 		(HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
 		NULL);      // Pointer not needed.
 
 	
 
-	// START
-	DWORD dwStyle = WS_CHILD | WS_VISIBLE;
-	CreateWindowEx(WS_EX_CLIENTEDGE,             //extended styles
-		_T("listbox"),                //control 'class' name
-		nullptr,					  //control caption
-		dwStyle,                      //control style 
-		0,                      //position: left
-		0,                       //position: top
-		200,                     //width
-		200,                    //height
-		hWnd,                      //parent window handle
-									  //control's ID
-		reinterpret_cast<HMENU>(static_cast<INT_PTR>(0)),
-		hInst,                        //application instance
-		0);                           //user defined info
+	// START @@@
+	// Create the list-view window in report view with label editing enabled.
+	long offset = 0;
+	hCheckBox = CreateWindow(TEXT("button"), TEXT("Monitor 1"),
+		WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
+		20, 20, 185, 35,
+		hWnd, (HMENU)IDC_CHECKBOX + offset, hInstance, 0);
+	/*hCheckBox = CreateWindow(TEXT("button"), TEXT("Monitor X"),
+		WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
+		20, 20, 185, 35,
+		hWnd, (HMENU)IDC_CHECKBOX, hInstance, NULL);*/
+
 	// END
 
 	if (!hWnd)
@@ -209,18 +209,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 	{
 		int wmId = LOWORD(wParam);
+		BOOL checked;
 
 		// Parse the menu selections:
+		if (wmId >= IDC_CHECKBOX)
+		{
+			checked = IsDlgButtonChecked(hWnd, wmId);
+			if (checked) {
+				CheckDlgButton(hWnd, wmId, BST_UNCHECKED);
+			}
+			else {
+				CheckDlgButton(hWnd, wmId, BST_CHECKED);
+			}
+			break;
+		}
+
 		switch (wmId)
 		{
-		case BN_CLICKED: // handle main button press
+		case IDC_ACTIVATE_SCREEN: // handle main button press
 			// change to: handle button specifically; by handle?
-			if (wParam == 0)
-			{
-				CreateOverlays(hInst, 0);
-			}
-			
+			CreateOverlays(hInst, 0);
 			break;
+		//case IDC_CHECKBOX:
+		//	// START @@@
+		//	checked = IsDlgButtonChecked(hWnd, wmId);
+		//	if (checked) {
+		//		CheckDlgButton(hWnd, wmId, BST_UNCHECKED);
+		//	}
+		//	else {
+		//		CheckDlgButton(hWnd, wmId, BST_CHECKED);
+		//	}
+		//	break;
+		//	// END
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -303,6 +323,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
 		}
+
 		break;
 	}
 	return (INT_PTR)FALSE;
@@ -368,3 +389,4 @@ int MonitorCount()
 		return Count;
 	return -1;		//signals an error
 }
+
