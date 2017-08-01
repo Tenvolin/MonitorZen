@@ -7,6 +7,7 @@
 #include <iostream>
 #include <set>
 #include <unordered_map>
+#include <Commctrl.h> // checked listbox
 
 #define MAX_LOADSTRING 100
 
@@ -41,14 +42,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	RegisterScreen(hInstance);
 
 	// !!! Delete
-	// Grab #monitors; loads monitorHandles set.
+	// Grab #monitors; initializes monitorHandles set.
 	MonitorCount();
-
-	/*wchar_t buffer[256];
-	wsprintfW(buffer, L"%d", monitorInfos.size());
-	MessageBoxW(nullptr, buffer, buffer, MB_OK);*/
-
-
 
 	// Perform application initialization:
 	if (!InitInstance(hInstance, nCmdShow))
@@ -166,23 +161,24 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		(HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
 		NULL);      // Pointer not needed.
 
-	// !!! refactor
-	// TODO: Populate scrollbar with items to scroll.
-	// TODO: Make scrollbar size adaptive to number of items to display
-	// create a scrollbar
-	HWND hwndScrollbar = CreateWindowEx(0L,
-		L"SCROLLBAR",
-		NULL,
-		WS_CHILD | WS_VISIBLE | SBS_VERT,
-		345,
-		20,
-		18,
-		250,
-		hWnd,
-		NULL,
-		hInst,
-		NULL);
+	
 
+	// START
+	DWORD dwStyle = WS_CHILD | WS_VISIBLE;
+	CreateWindowEx(WS_EX_CLIENTEDGE,             //extended styles
+		_T("listbox"),                //control 'class' name
+		nullptr,					  //control caption
+		dwStyle,                      //control style 
+		0,                      //position: left
+		0,                       //position: top
+		200,                     //width
+		200,                    //height
+		hWnd,                      //parent window handle
+									  //control's ID
+		reinterpret_cast<HMENU>(static_cast<INT_PTR>(0)),
+		hInst,                        //application instance
+		0);                           //user defined info
+	// END
 
 	if (!hWnd)
 	{
@@ -214,15 +210,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		int wmId = LOWORD(wParam);
 
-		// handle main button press
-		if (message == 273)
-		{
-			CreateOverlays(hInst, 0);
-		}
-
 		// Parse the menu selections:
 		switch (wmId)
 		{
+		case BN_CLICKED: // handle main button press
+			// change to: handle button specifically; by handle?
+			if (wParam == 0)
+			{
+				CreateOverlays(hInst, 0);
+			}
+			
+			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -336,8 +334,8 @@ BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
 			botRightY - topLeftY,
 			nullptr, nullptr, nullptr, nullptr);
 
-		SetWindowLong(hWndScreen, GWL_STYLE, 0); // !!! removes title bar
-		SetMenu(hWndScreen, NULL); // !!! removes menu bar
+		SetWindowLong(hWndScreen, GWL_STYLE, 0); // removes title bar
+		SetMenu(hWndScreen, NULL); // removes menu bar
 
 		ShowWindow(hWndScreen, SW_SHOWDEFAULT);
 		UpdateWindow(hWndScreen);
@@ -352,9 +350,9 @@ BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
 // Helps enumerate monitors and populates 
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
-	// store MONITORINFO globally
+	// Initialize and store MONITORINFO globally
 	MONITORINFO info;
-	info.cbSize = sizeof(info);
+	info.cbSize = sizeof(info); // req
 	GetMonitorInfo(hMonitor, &info);
 	monitorInfos.insert({ hMonitor, info });
 
