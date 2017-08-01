@@ -166,19 +166,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	
 
 	// START @@@
-	// Create the list-view window in report view with label editing enabled.
-	long offset = hCheckBoxes.size();
+	// vars to create a checkbox
+	long offset = 0;
 	HWND hCheckBox;
-
-	wchar_t buffer[256];
-	wsprintfW(buffer, L"Monitor %d", offset + 1); // monitor: X; 1-based index.
-	
+	wchar_t label[256];
+	// iteratively create a checkbox for each monitor;
+	// position immediately below one another.
 	for (int i = 0; i < monitorInfos.size(); ++i)
 	{
-		hCheckBox = CreateWindow(L"button", buffer,
+		wsprintfW(label, L"Monitor %d", offset + 1); // 1-based index.
+		hCheckBox = CreateWindow(L"button", label,
 			WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
 			20, 20+i*35, 185, 35,
 			hWnd, (HMENU)IDC_CHECKBOX + offset, hInstance, 0);
+		// insert into global unordered_map
 		hCheckBoxes.insert({ hCheckBox, offset });
 		offset++;
 	}
