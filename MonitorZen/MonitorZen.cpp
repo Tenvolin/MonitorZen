@@ -21,9 +21,8 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 // ASSUMPTION: the indicies of these two maps are linked together.
 //	each map is sorted: by compare_1() or default.
-std::map<MONITORINFO, HMONITOR, compare_1> monitorInfos; // monitorinfo to monitor
-std::map<int, HWND> hCheckBoxes;				// offset to HWND
-
+std::map<MONITORINFO, HMONITOR, compare_1> MoninfoToHmonMap; // moninfo:mon_handles
+std::map<int, HWND> OffsetsToHwndMap;				// offsets:Button_handles 
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -172,28 +171,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	wchar_t label[256];
 	// iteratively create a checkbox for each monitor;
 	// position immediately below one another.
-	for (int i = 0; i < monitorInfos.size(); ++i)
+	for (int i = 0; i < MoninfoToHmonMap.size(); ++i)
 	{
 		wsprintfW(label, L"Monitor %d", offset + 1); // 1-based index.
 		hCheckBox = CreateWindow(L"button", label,
 			WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
 			20, 20+i*35, 185, 35,
-			hWnd, (HMENU)IDC_CHECKBOX + offset, hInstance, 0);
+			hWnd, (HMENU)(IDC_CHECKBOX + offset), hInstance, 0);
 
-		// insert into global unordered_map
-		hCheckBoxes.insert(std::pair<int, HWND >(offset, hCheckBox));
+		// insert into global map
+		OffsetsToHwndMap.insert(std::pair<int, HWND >(offset, hCheckBox));
 		offset++;
 	}
 
-	////// Create an ordered list: idsToMonitorInfos
-	//std::pair<int, MONITORINFO> cur_pair;
-	//for (auto it = hCheckBoxes.begin(); it != hCheckBoxes.end(); ++it)
-	//{
-	//	cur_pair.first = IDC_CHECKBOX + it->second;
-	//	idsToMonitorInfos.insert(cur_pair);
-	//}
-
-	
 	if (!hWnd) { return FALSE; }
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
@@ -233,7 +223,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDC_ACTIVATE_SCREEN: // handle main button press
-			CreateOverlays(hInst, 0);
+			CreateOverlays(hWnd, 0);
 			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -322,40 +312,60 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
+BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 {
+	// TODO: Create a check that deletes overlays if they already exist
+	/* code goes here */
+
 	// TODO: store a list of hWndScreens; allow hotkey to destroy and spawn them.
+	std::vector<MONITORINFO> queueMoninfo;
 	int topLeftX = 0; int topLeftY = 0;
 	int botRightX = 0; int botRightY = 0;
 	MONITORINFO info;
 	HWND hWndScreen;
+	UINT checked = false;
 
-	for (auto it = monitorInfos.begin(); it != monitorInfos.end(); ++it)
+	// 
+	auto MoninfoIt = MoninfoToHmonMap.begin();
+	auto offsetsIt = OffsetsToHwndMap.begin();
+	for (; MoninfoIt != MoninfoToHmonMap.end(); ++MoninfoIt, ++offsetsIt)
 	{
-		info = it->first;
-		topLeftX = info.rcMonitor.left;
-		topLeftY = info.rcMonitor.top;
-		botRightX = info.rcMonitor.right;
-		botRightY = info.rcMonitor.bottom;
+		
+		// TODO: PROBLEM IS LOCALIZED HERE; checked never changes for some raison
+		checked = IsDlgButtonChecked(hWnd, IDC_CHECKBOX + offsetsIt->first);
 
-		hWndScreen = CreateWindowW(L"screen",
-			L"Meme",
-			WS_OVERLAPPEDWINDOW & (~WS_THICKFRAME) & (~WS_MINIMIZEBOX) & (~WS_MAXIMIZEBOX),
-			topLeftX,
-			topLeftY,
-			botRightX - topLeftX,
-			botRightY - topLeftY,
-			nullptr, nullptr, nullptr, nullptr);
+		if (checked == BST_CHECKED)
+		{
+			// initialize info from MoninfoToHmonMap
+			info = MoninfoIt->first;
+			topLeftX = info.rcMonitor.left;
+			topLeftY = info.rcMonitor.top;
+			botRightX = info.rcMonitor.right;
+			botRightY = info.rcMonitor.bottom;
 
-		SetWindowLong(hWndScreen, GWL_STYLE, 0); // removes title bar
-		SetMenu(hWndScreen, NULL); // removes menu bar
+			// create black screen on correct location
+			hWndScreen = CreateWindowW(L"screen",
+				L"Meme",
+				WS_OVERLAPPEDWINDOW & (~WS_THICKFRAME) & (~WS_MINIMIZEBOX) & (~WS_MAXIMIZEBOX),
+				topLeftX,
+				topLeftY,
+				botRightX - topLeftX,
+				botRightY - topLeftY,
+				nullptr, nullptr, nullptr, nullptr);
 
-		ShowWindow(hWndScreen, SW_SHOWDEFAULT);
-		UpdateWindow(hWndScreen);
+			SetWindowLong(hWndScreen, GWL_STYLE, 0); // removes title bar
+			SetMenu(hWndScreen, NULL); // removes menu bar
+
+			ShowWindow(hWndScreen, SW_SHOWDEFAULT);
+			UpdateWindow(hWndScreen);
+		}
+		
 	}
 
 	return TRUE;
 }
+
+
 
 // Helps enumerate monitors and populates 
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
@@ -364,7 +374,7 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 	MONITORINFO info;
 	info.cbSize = sizeof(info); // req
 	GetMonitorInfo(hMonitor, &info);
-	monitorInfos.insert(std::pair<MONITORINFO, HMONITOR>(info, hMonitor));
+	MoninfoToHmonMap.insert(std::pair<MONITORINFO, HMONITOR>(info, hMonitor));
 	// TODO: sort monitorinfos
 
 	int *Count = (int*)dwData;
