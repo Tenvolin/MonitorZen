@@ -2,6 +2,7 @@
 #include <utility>
 #include "resource.h"
 BOOL CreateOverlays(HWND hWnd, int nCmdShow);
+BOOL deleteOverlays(HWND hWnd);
 ATOM RegisterScreen(HINSTANCE hInstance);
 LRESULT CALLBACK WndProcScreen(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData);

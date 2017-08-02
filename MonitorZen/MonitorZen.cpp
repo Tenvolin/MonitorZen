@@ -17,14 +17,15 @@
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+bool screening;									// true when blacked out
+std::vector<HWND> currentScreens;
 
 // ASSUMPTION: the indicies of these two maps are linked together;
 //	each map is sorted: by compare_1() or default.
-												
-std::map<MONITORINFO,							// moninfo:mon_handles
-	HMONITOR, compare_1> MoninfoToHmonMap; 
-									
-std::map<int, HWND> OffsetsToHwndMap;			// IDC_CHECKBOX offset:Button_handles 
+// moninfo:mon_handles
+std::map<MONITORINFO, HMONITOR, compare_1> MoninfoToHmonMap; 
+// IDC_CHECKBOX offset:checkbox_handles 
+std::map<int, HWND> OffsetsToHwndMap;			
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -252,7 +253,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDC_ACTIVATE_SCREEN: // handle main button press
-			CreateOverlays(hWnd, 0);
+			(!screening) ? (CreateOverlays(hWnd, 0), screening = true) : (deleteOverlays(hWnd), screening = false);
 			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -378,6 +379,8 @@ BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 				botRightY - topLeftY,
 				nullptr, nullptr, nullptr, nullptr);
 
+			currentScreens.push_back(hWndScreen);
+
 			SetWindowLong(hWndScreen, GWL_STYLE, 0); // removes title bar
 			SetMenu(hWndScreen, NULL); // removes menu bar
 
@@ -390,7 +393,18 @@ BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 	return TRUE;
 }
 
+BOOL deleteOverlays(HWND hWnd)
+{
+	HWND currentWindow;
+	while (!currentScreens.empty())
+	{
+		currentWindow = currentScreens.back();
+		DestroyWindow(currentWindow);
+		currentScreens.pop_back();
+	}
 
+	return true;
+}
 
 // Helps enumerate monitors and populates 
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
