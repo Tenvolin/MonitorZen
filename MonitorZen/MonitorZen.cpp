@@ -10,6 +10,7 @@
 #include <map>
 #include <vector>
 #include <utility>
+#include <algorithm>
 
 #define MAX_LOADSTRING 100
 
@@ -18,10 +19,10 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
-// Indices of HMONITOR and HWND 
-std::unordered_map<HMONITOR, MONITORINFO> monitorInfos; // virtual-screen info
-std::unordered_map<HWND, int> hCheckBoxes;
-std::map<int, MONITORINFO> idsToMonitorInfos;
+// ASSUMPTION: the indicies of these two maps are linked together.
+//	each map is sorted: by compare_1() or default.
+std::map<MONITORINFO, HMONITOR, compare_1> monitorInfos; // monitorinfo to monitor
+std::map<int, HWND> hCheckBoxes;				// offset to HWND
 
 
 // Forward declarations of functions included in this code module:
@@ -180,23 +181,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 			hWnd, (HMENU)IDC_CHECKBOX + offset, hInstance, 0);
 
 		// insert into global unordered_map
-		hCheckBoxes.insert({ hCheckBox, offset });
+		hCheckBoxes.insert(std::pair<int, HWND >(offset, hCheckBox));
 		offset++;
 	}
 
-	// Create an ordered list: idsToMonitorInfos
-	std::pair<int, MONITORINFO> cur_pair;
-	for (auto it = hCheckBoxes.begin(); it != hCheckBoxes.end(); ++it)
-	{
-		cur_pair.first = IDC_CHECKBOX + it->second;
-		idsToMonitorInfos.insert(cur_pair);
-	}
-
-	std::vector < MONITORINFO> vectorMonitorInfos;
-	for (auto it = monitorInfos.begin(); it != monitorInfos.end(); ++it)
-	{
-		vectorMonitorInfos.push_back(it->second);
-	}
+	////// Create an ordered list: idsToMonitorInfos
+	//std::pair<int, MONITORINFO> cur_pair;
+	//for (auto it = hCheckBoxes.begin(); it != hCheckBoxes.end(); ++it)
+	//{
+	//	cur_pair.first = IDC_CHECKBOX + it->second;
+	//	idsToMonitorInfos.insert(cur_pair);
+	//}
 
 	
 	if (!hWnd) { return FALSE; }
@@ -332,16 +327,16 @@ BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
 	// TODO: store a list of hWndScreens; allow hotkey to destroy and spawn them.
 	int topLeftX = 0; int topLeftY = 0;
 	int botRightX = 0; int botRightY = 0;
-	MONITORINFO *info;
+	MONITORINFO info;
 	HWND hWndScreen;
 
 	for (auto it = monitorInfos.begin(); it != monitorInfos.end(); ++it)
 	{
-		info = &it->second;
-		topLeftX = info->rcMonitor.left;
-		topLeftY = info->rcMonitor.top;
-		botRightX = info->rcMonitor.right;
-		botRightY = info->rcMonitor.bottom;
+		info = it->first;
+		topLeftX = info.rcMonitor.left;
+		topLeftY = info.rcMonitor.top;
+		botRightX = info.rcMonitor.right;
+		botRightY = info.rcMonitor.bottom;
 
 		hWndScreen = CreateWindowW(L"screen",
 			L"Meme",
@@ -369,7 +364,8 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 	MONITORINFO info;
 	info.cbSize = sizeof(info); // req
 	GetMonitorInfo(hMonitor, &info);
-	monitorInfos.insert({ hMonitor, info });
+	monitorInfos.insert(std::pair<MONITORINFO, HMONITOR>(info, hMonitor));
+	// TODO: sort monitorinfos
 
 	int *Count = (int*)dwData;
 	(*Count)++;
@@ -383,4 +379,5 @@ int MonitorCount()
 		return Count;
 	return -1;		//signals an error
 }
+
 

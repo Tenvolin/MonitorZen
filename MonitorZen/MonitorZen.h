@@ -1,5 +1,5 @@
 #pragma once
-
+#include <utility>
 #include "resource.h"
 BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow);
 ATOM RegisterScreen(HINSTANCE hInstance);
@@ -7,13 +7,13 @@ LRESULT CALLBACK WndProcScreen(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData);
 int MonitorCount();
 
-int compare(const void * a, const void * b)
+
+//std::sort(items.begin(), items.end(), cmp);
+class compare_1
 {
-	MONITORINFO *am; MONITORINFO *bm;
-	am = (MONITORINFO*)a;
-	bm = (MONITORINFO*)b;
-
-
-	;
-	return am->rcMonitor.left - bm->rcMonitor.left;
-}
+public:
+	bool operator()(const MONITORINFO &x, const MONITORINFO &y)
+	{
+		return x.rcMonitor.left < y.rcMonitor.left;
+	}
+};
