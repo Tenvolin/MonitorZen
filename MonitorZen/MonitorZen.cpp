@@ -142,7 +142,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
 
-	// TODO: maybe refactor this out
 	// create main window
 	HWND hWnd = CreateWindowW(szWindowClass,
 		szTitle,
@@ -401,7 +400,6 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 	info.cbSize = sizeof(info); // req
 	GetMonitorInfo(hMonitor, &info);
 	MoninfoToHmonMap.insert(std::pair<MONITORINFO, HMONITOR>(info, hMonitor));
-	// TODO: sort monitorinfos
 
 	int *Count = (int*)dwData;
 	(*Count)++;
