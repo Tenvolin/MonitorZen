@@ -7,8 +7,9 @@
 #include <iostream>
 #include <set>
 #include <unordered_map>
-#include <Commctrl.h> // checked listbox
+#include <map>
 #include <vector>
+#include <utility>
 
 #define MAX_LOADSTRING 100
 
@@ -17,10 +18,11 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
-// virtual-screen information
-												// to find resolution
-std::unordered_map<HMONITOR, MONITORINFO> monitorInfos; 
-std::unordered_map<HWND, int> hCheckBoxes; 
+// Indices of HMONITOR and HWND 
+std::unordered_map<HMONITOR, MONITORINFO> monitorInfos; // virtual-screen info
+std::unordered_map<HWND, int> hCheckBoxes;
+std::map<int, MONITORINFO> idsToMonitorInfos;
+
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -36,15 +38,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	// TODO: Place code here.
-
 	// Initialize global strings
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadStringW(hInstance, IDC_MONITORZEN, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 	RegisterScreen(hInstance);
 
-	// !!! Delete
 	// Grab #monitors; initializes monitorHandles set.
 	MonitorCount();
 
@@ -72,7 +71,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 }
 
 
-
 //
 //  FUNCTION: MyRegisterClass()
 //
@@ -98,6 +96,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
 	return RegisterClassExW(&wcex);
 }
+
 //
 //  FUNCTION: RegisterScreen(HINSTANCE hInstance)
 //
@@ -138,6 +137,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
 
+	// TODO: maybe refactor this out
 	// create main window
 	HWND hWnd = CreateWindowW(szWindowClass,
 		szTitle,
@@ -148,24 +148,23 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		400,
 		nullptr, nullptr, hInstance, nullptr);
 
-	// !!! refactor; 
+	// TODO: refactor this out
 	// create button in main window
-	// TODO: See if there is any other way of handling buttons.
 	HWND hwndButton = CreateWindow(
-		L"BUTTON",  // Predefined class; Unicode assumed 
-		L"Cover Monitors",      // Button text 
+		L"BUTTON",  
+		L"Cover Monitors",
 		WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_FLAT,//WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-		133 + 12,         // x position 
-		300,         // y position 
-		105,        // Button width
-		30,        // Button height
-		hWnd,     // Parent window
-		(HMENU)IDC_ACTIVATE_SCREEN,       // No menu.
+		133 + 12,
+		300,      
+		105,      
+		30,       
+		hWnd,     
+		(HMENU)IDC_ACTIVATE_SCREEN,
 		(HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
 		NULL);      // Pointer not needed.
 	
 
-	// START @@@
+	// TODO: Refactor this out
 	// vars to create a checkbox
 	long offset = 0;
 	HWND hCheckBox;
@@ -179,26 +178,34 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 			WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
 			20, 20+i*35, 185, 35,
 			hWnd, (HMENU)IDC_CHECKBOX + offset, hInstance, 0);
+
 		// insert into global unordered_map
 		hCheckBoxes.insert({ hCheckBox, offset });
 		offset++;
 	}
-	
-	// END
 
-	if (!hWnd)
+	// Create an ordered list: idsToMonitorInfos
+	std::pair<int, MONITORINFO> cur_pair;
+	for (auto it = hCheckBoxes.begin(); it != hCheckBoxes.end(); ++it)
 	{
-		return FALSE;
+		cur_pair.first = IDC_CHECKBOX + it->second;
+		idsToMonitorInfos.insert(cur_pair);
 	}
 
-	ShowWindow(hWnd, nCmdShow);
+	std::vector < MONITORINFO> vectorMonitorInfos;
+	for (auto it = monitorInfos.begin(); it != monitorInfos.end(); ++it)
+	{
+		vectorMonitorInfos.push_back(it->second);
+	}
 
+	
+	if (!hWnd) { return FALSE; }
+	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
 	return TRUE;
 }
 
-//
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
 //  PURPOSE:  Processes messages for the main window.
@@ -206,8 +213,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_COMMAND  - process the application menu
 //  WM_PAINT    - Paint the main window
 //  WM_DESTROY  - post a quit message and return
-//
-//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
@@ -290,7 +295,6 @@ LRESULT CALLBACK WndProcScreen(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -331,7 +335,6 @@ BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
 	MONITORINFO *info;
 	HWND hWndScreen;
 
-	
 	for (auto it = monitorInfos.begin(); it != monitorInfos.end(); ++it)
 	{
 		info = &it->second;
@@ -355,9 +358,6 @@ BOOL CreateOverlays(HINSTANCE hInstance, int nCmdShow)
 		ShowWindow(hWndScreen, SW_SHOWDEFAULT);
 		UpdateWindow(hWndScreen);
 	}
-
-
-
 
 	return TRUE;
 }
