@@ -10,7 +10,6 @@
 #include <map>
 #include <vector>
 #include <utility>
-#include <algorithm>
 
 #define MAX_LOADSTRING 100
 
@@ -19,14 +18,19 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
-// ASSUMPTION: the indicies of these two maps are linked together.
+// ASSUMPTION: the indicies of these two maps are linked together;
 //	each map is sorted: by compare_1() or default.
-std::map<MONITORINFO, HMONITOR, compare_1> MoninfoToHmonMap; // moninfo:mon_handles
-std::map<int, HWND> OffsetsToHwndMap;				// offsets:Button_handles 
+												
+std::map<MONITORINFO,							// moninfo:mon_handles
+	HMONITOR, compare_1> MoninfoToHmonMap; 
+									
+std::map<int, HWND> OffsetsToHwndMap;			// IDC_CHECKBOX offset:Button_handles 
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
+HWND addMainButton(HWND &hWnd, HINSTANCE &hInstance);
+HWND addCheckboxes(HWND &hWnd, HINSTANCE &hInstance);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
@@ -44,7 +48,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	MyRegisterClass(hInstance);
 	RegisterScreen(hInstance);
 
-	// Grab #monitors; initializes monitorHandles set.
+	// Grab #monitors; initializes MoninfoToHmonMap.
+	// todo: Consider passing in the map as param; more clarity?
 	MonitorCount();
 
 	// Perform application initialization:
@@ -148,47 +153,72 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		400,
 		nullptr, nullptr, hInstance, nullptr);
 
-	// TODO: refactor this out
-	// create button in main window
-	HWND hwndButton = CreateWindow(
-		L"BUTTON",  
-		L"Cover Monitors",
-		WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_FLAT,//WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-		133 + 12,
-		300,      
-		105,      
-		30,       
-		hWnd,     
-		(HMENU)IDC_ACTIVATE_SCREEN,
-		(HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
-		NULL);      // Pointer not needed.
 	
-
-	// TODO: Refactor this out
-	// vars to create a checkbox
-	long offset = 0;
-	HWND hCheckBox;
-	wchar_t label[256];
-	// iteratively create a checkbox for each monitor;
-	// position immediately below one another.
-	for (int i = 0; i < MoninfoToHmonMap.size(); ++i)
-	{
-		wsprintfW(label, L"Monitor %d", offset + 1); // 1-based index.
-		hCheckBox = CreateWindow(L"button", label,
-			WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
-			20, 20+i*35, 185, 35,
-			hWnd, (HMENU)(IDC_CHECKBOX + offset), hInstance, 0);
-
-		// insert into global map
-		OffsetsToHwndMap.insert(std::pair<int, HWND >(offset, hCheckBox));
-		offset++;
-	}
+	addMainButton(hWnd, hInstance);
+	
+	addCheckboxes(hWnd, hInstance);
 
 	if (!hWnd) { return FALSE; }
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
 	return TRUE;
+}
+
+//   PURPOSE: Adds button used to create black overlays over each flagged 
+//      monitor.
+// 
+//   RETURN: returns NULL if failure to create window; otherwise, return
+//      handle of button.
+HWND addMainButton(HWND &hWnd, HINSTANCE &hInstance)
+{
+	HWND hWndButton = CreateWindow(
+		L"BUTTON",
+		L"Cover Monitors",
+		WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_FLAT,
+		133 + 12,
+		300,
+		105,
+		30,
+		hWnd,
+		(HMENU)IDC_ACTIVATE_SCREEN,
+		hInstance,
+		NULL);      
+	return hWndButton;
+}
+
+//   PURPOSE: Adds one checkbox to the main application window for every 
+//      detected monitor. Labels are named accordingly to monitor number.
+// 
+//   RETURN: returns NULL if failure to create window; otherwise, return
+//      handle of button.
+HWND addCheckboxes(HWND &hWnd, HINSTANCE &hInstance)
+{
+	// vars to create a checkbox
+	long offset = 0;
+	HWND hCheckBox;
+	wchar_t label[256];
+	
+	// iteratively create a checkbox for each monitor;
+	//		position immediately below one another.
+	for (unsigned i = 0; i < MoninfoToHmonMap.size(); ++i)
+	{
+		wsprintfW(label, L"Monitor %d", offset + 1); // 1-based label numbering
+		hCheckBox = CreateWindow(L"button", label,
+			WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
+			20, 20 + i * 35, 185, 35,
+			hWnd, (HMENU)(IDC_CHECKBOX + offset), hInstance, 0);
+
+		// insert into global map
+		OffsetsToHwndMap.insert(std::pair<int, HWND >(offset, hCheckBox));
+		offset++;
+	}
+	
+	if (MoninfoToHmonMap.size() != OffsetsToHwndMap.size())
+	{
+		hCheckBox = NULL;
+	}
+	return hCheckBox;
 }
 
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -316,24 +346,20 @@ BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 {
 	// TODO: Create a check that deletes overlays if they already exist
 	/* code goes here */
-
-	// TODO: store a list of hWndScreens; allow hotkey to destroy and spawn them.
-	std::vector<MONITORINFO> queueMoninfo;
 	int topLeftX = 0; int topLeftY = 0;
 	int botRightX = 0; int botRightY = 0;
 	MONITORINFO info;
 	HWND hWndScreen;
 	UINT checked = false;
 
-	// 
+	// Two iterators are used to simultaneously iterate over two maps of the
+	//	the same size. The indices on each map both correspond to a monitor.
 	auto MoninfoIt = MoninfoToHmonMap.begin();
 	auto offsetsIt = OffsetsToHwndMap.begin();
 	for (; MoninfoIt != MoninfoToHmonMap.end(); ++MoninfoIt, ++offsetsIt)
 	{
-		
-		// TODO: PROBLEM IS LOCALIZED HERE; checked never changes for some raison
+		// check if the current checkbox is checked
 		checked = IsDlgButtonChecked(hWnd, IDC_CHECKBOX + offsetsIt->first);
-
 		if (checked == BST_CHECKED)
 		{
 			// initialize info from MoninfoToHmonMap
