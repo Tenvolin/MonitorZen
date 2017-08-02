@@ -389,7 +389,7 @@ BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 			// create black screen on correct location
 			hWndScreen = CreateWindowW(L"screen",
 				L"Meme",
-				WS_OVERLAPPEDWINDOW & (~WS_THICKFRAME) & (~WS_MINIMIZEBOX) & (~WS_MAXIMIZEBOX),
+				WS_EX_TOOLWINDOW & (~WS_THICKFRAME) & (~WS_MINIMIZEBOX) & (~WS_MAXIMIZEBOX),
 				topLeftX,
 				topLeftY,
 				botRightX - topLeftX,
