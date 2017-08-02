@@ -15,6 +15,7 @@
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
+HWND hMainWnd;									// handle to main window
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 bool screening;									// true when blacked out
@@ -52,7 +53,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// Grab #monitors; initializes MoninfoToHmonMap.
 	// todo: Consider passing in the map as param; more clarity?
 	MonitorCount();
-
+	int success = RegisterHotKey(NULL,
+			HOTKEY1,
+			MOD_ALT,
+		VK_OEM_3); // ~ key !!!! us keyboard limited
 	// Perform application initialization:
 	if (!InitInstance(hInstance, nCmdShow))
 	{
@@ -66,11 +70,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		if (msg.message == WM_HOTKEY)
+		{
+			toggleOverlays(::hMainWnd);
+		}
+		else if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+		
 	}
 
 	return (int)msg.wParam;
@@ -153,6 +162,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		400,
 		nullptr, nullptr, hInstance, nullptr);
 
+	::hMainWnd = hWnd;
 	
 	addMainButton(hWnd, hInstance);
 	
@@ -253,7 +263,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDC_ACTIVATE_SCREEN: // handle main button press
-			(!screening) ? (CreateOverlays(hWnd, 0), screening = true) : (deleteOverlays(hWnd), screening = false);
+			toggleOverlays(hWnd);
 			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -341,6 +351,11 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return (INT_PTR)FALSE;
 }
+void toggleOverlays(HWND hWnd)
+{
+	(currentScreens.size() == 0) ? (CreateOverlays(hWnd, 0), screening = true) : (deleteOverlays(hWnd), screening = false);
+	return;
+}
 
 BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 {
@@ -358,8 +373,10 @@ BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 	auto offsetsIt = OffsetsToHwndMap.begin();
 	for (; MoninfoIt != MoninfoToHmonMap.end(); ++MoninfoIt, ++offsetsIt)
 	{
-		// check if the current checkbox is checked
 		checked = IsDlgButtonChecked(hWnd, IDC_CHECKBOX + offsetsIt->first);
+		
+		// create a single window with topmost properties and load into 
+		//	currentScreens vec.
 		if (checked == BST_CHECKED)
 		{
 			// initialize info from MoninfoToHmonMap
@@ -383,6 +400,8 @@ BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 
 			SetWindowLong(hWndScreen, GWL_STYLE, 0); // removes title bar
 			SetMenu(hWndScreen, NULL); // removes menu bar
+			SetWindowPos(hWndScreen, HWND_TOPMOST, // set z-index and nomove
+				0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
 			ShowWindow(hWndScreen, SW_SHOWDEFAULT);
 			UpdateWindow(hWndScreen);

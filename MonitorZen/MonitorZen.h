@@ -7,7 +7,7 @@ ATOM RegisterScreen(HINSTANCE hInstance);
 LRESULT CALLBACK WndProcScreen(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData);
 int MonitorCount();
-
+void toggleOverlays(HWND hWnd);
 
 //std::sort(items.begin(), items.end(), cmp);
 // TODO: Refactor; place somewhere nicer

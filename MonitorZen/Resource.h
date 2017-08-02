@@ -16,6 +16,7 @@
 #define IDC_MYICON				2
 #define IDC_ACTIVATE_SCREEN		150
 #define IDC_CHECKBOX			151
+#define HOTKEY1					1000
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
 #endif
