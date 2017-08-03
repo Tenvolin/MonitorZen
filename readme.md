@@ -11,7 +11,7 @@ your non-dominant monitor. With a single hotkey you can block out everything and
 focus on reading your article at hand. 
 
 # How it Works
-The program works by painting the client area back in each child window. 
+The program works by painting the client area black in each child window. 
 Each of these windows are positioned to overlay the resolution of each selected
 monitor. 
 
@@ -27,8 +27,8 @@ keep them permanently above all other windows.
 ### Hotkey: ctrl + ~
 Start the program and a checkbox will appear for each monitor you have in use.
 The monitors are numbered from 1 onwards, counting from your leftmost monitor 
-first. When you want to black out certain overlays, press the hotkeys "ctrl"+"~"
-or click on the main bottom.
+first. When you want to toggle blacking out certain overlays, press the hotkeys 
+"ctrl"+"~" or click on the main bottom.
 
 If you forget about the hotkeys, you can always "alt"+"f4" out of these overlays.
 
