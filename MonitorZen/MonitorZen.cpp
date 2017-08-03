@@ -28,13 +28,7 @@ std::map<MONITORINFO, HMONITOR, compare_1> MoninfoToHmonMap;
 // IDC_CHECKBOX offset:checkbox_handles 
 std::map<int, HWND> OffsetsToHwndMap;			
 
-// Forward declarations of functions included in this code module:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-HWND addMainButton(HWND &hWnd, HINSTANCE &hInstance);
-HWND addCheckboxes(HWND &hWnd, HINSTANCE &hInstance);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
