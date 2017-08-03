@@ -20,8 +20,8 @@ overlay on each selected monitor. Each child window also contains styles that
 keep them permanently above all other windows.
 
 # In Action
-![Usage](https://github.com/Tenvolin/MonitorZen/images/usage.gif)
-![Main Window](https://github.com/Tenvolin/MonitorZen/images/mainwindow.png)
+![Usage](https://github.com/Tenvolin/MonitorZen/blob/master/images/usage.gif)
+![Main Window](https://github.com/Tenvolin/MonitorZen/blob/master/images/usage.gif)
 
 # To Use
 ### Hotkey: ctrl + ~
