@@ -21,7 +21,7 @@ keep them permanently above all other windows.
 
 # In Action
 ![Usage](https://github.com/Tenvolin/MonitorZen/blob/master/images/usage.gif)
-![Main Window](https://github.com/Tenvolin/MonitorZen/blob/master/images/mainwindow.gif)
+![Main Window](https://github.com/Tenvolin/MonitorZen/blob/master/images/mainwindow.png)
 
 # To Use
 ### Hotkey: ctrl + ~
