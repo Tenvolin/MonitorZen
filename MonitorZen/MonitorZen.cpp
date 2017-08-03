@@ -51,7 +51,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	RegisterScreen(hInstance);
 
 	// Grab #monitors; initializes MoninfoToHmonMap.
-	// todo: Consider passing in the map as param; more clarity?
+	// TODO: Consider passing in the map as param; more clarity?
+	// TODO: Add ability to minimize program to system tray notification area.
 	MonitorCount();
 	int success = RegisterHotKey(NULL,
 			HOTKEY1,
@@ -155,7 +156,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	// create main window
 	HWND hWnd = CreateWindowW(szWindowClass,
 		szTitle,
-		WS_OVERLAPPEDWINDOW & (~WS_THICKFRAME) & (~WS_MINIMIZEBOX) & (~WS_MAXIMIZEBOX),
+		WS_OVERLAPPEDWINDOW & (~WS_THICKFRAME) & (~WS_MAXIMIZEBOX),
 		CW_USEDEFAULT,
 		0,
 		400,
@@ -280,7 +281,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -359,7 +359,6 @@ void toggleOverlays(HWND hWnd)
 
 BOOL CreateOverlays(HWND hWnd, int nCmdShow)
 {
-	// TODO: Create a check that deletes overlays if they already exist
 	/* code goes here */
 	int topLeftX = 0; int topLeftY = 0;
 	int botRightX = 0; int botRightY = 0;

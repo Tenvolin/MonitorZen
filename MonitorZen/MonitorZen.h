@@ -10,7 +10,7 @@ int MonitorCount();
 void toggleOverlays(HWND hWnd);
 
 //std::sort(items.begin(), items.end(), cmp);
-// TODO: Refactor; place somewhere nicer
+// TODO: Refactor; place somewhere nicer?
 class compare_1
 {
 public:
